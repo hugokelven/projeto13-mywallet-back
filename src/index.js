@@ -5,6 +5,7 @@ import chalk from 'chalk'
 import joi from 'joi'
 import dotenv from "dotenv"
 import bcrypt from 'bcrypt';
+import { v4 as uuid } from 'uuid';
 
 const app = express()
 app.use(cors())
@@ -78,30 +79,38 @@ app.post("/login", async (req, res) => {
         const usuario = await db.collection("usuariosCadastrados").findOne({email})
 
         if (usuario && bcrypt.compareSync(senha, usuario.senha)) {
-            res.sendStatus(200);
+            const token = uuid()
+            console.log(token)
+        
+            await db.collection("sessoes").insertOne({
+                usuarioId: usuario._id,
+                token
+            })
+
+            res.send(token)
         } else {
             // FIXME: Talvez precise de um throw error
-            res.sendStatus(401);
+            res.sendStatus(401)
         }
     } catch (e) {
         res.sendStatus(500)
     }
 })
 
-app.post("/transacoes", async (req, res) => {
+app.post("/registros", async (req, res) => {
     console.log(req.body)
     const {valor, descricao, tipo} = req.body
-    const {email} = req.headers
+    const {token} = req.headers
 
-    console.log(email)
+    console.log(token)
 
-    const transacaoSchema = joi.object({
+    const registroSchema = joi.object({
         valor: joi.string().required(),
         descricao: joi.string().required(),
         tipo: joi.string().valid("entrada", "saida").required()
     })
 
-    const validacao = transacaoSchema.validate(req.body)
+    const validacao = registroSchema.validate(req.body)
 
     if(validacao.error) {
         res.status(500).send(validacao.error)
@@ -109,25 +118,40 @@ app.post("/transacoes", async (req, res) => {
     }
 
     try {
-        await db.collection("transacoes").insertOne({
-            valor,
-            descricao,
-            tipo,
-            email
-        })
+        const sessao = await db.collection("sessoes").findOne({token})
+        console.log(sessao)
 
-        res.sendStatus(200)
+        const {usuarioId} = sessao
+
+        if (sessao) {
+            await db.collection("registros").insertOne({
+                valor,
+                descricao,
+                tipo,
+                usuarioId
+            })
+    
+            res.sendStatus(200)
+        } else {
+            res.sendStatus(401)
+        }
+
     } catch (e) {
         res.sendStatus(500)
     }
 })
 
-app.get("/transacoes", async (req, res) => {
-    const {email} = req.headers
-    console.log(email)
+app.get("/registros", async (req, res) => {
+    const {token} = req.headers
+    console.log(token)
     try {
-        const transacoes = await db.collection("transacoes").find({email}).toArray()
-        res.status(200).send(transacoes)
+        const sessao = await db.collection("sessoes").findOne({token})
+
+        console.log(sessao)
+        const {usuarioId} = sessao
+
+        const registros = await db.collection("registros").find({usuarioId}).toArray()
+        res.status(200).send(registros)
     } catch (e) {
         res.sendStatus(404)
     }
