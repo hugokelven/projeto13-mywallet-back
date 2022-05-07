@@ -3,22 +3,21 @@ import cors from 'cors'
 import chalk from 'chalk'
 import dotenv from "dotenv"
 
-import postCadastro from './controllers/cadastroController.js'
-import postLogin from './controllers/loginController.js'
-import { adicionarRegistro, obterRegistros } from './controllers/registrosController.js'
+import cadastroRouter from './routes/cadastroRouter.js'
+import loginRouter from './routes/loginRouter.js'
+import registrosRouter from './routes/registrosRouter.js'
 
 const app = express()
 app.use(cors())
 app.use(json())
 dotenv.config()
 
-app.post("/cadastro", postCadastro)
+app.use(cadastroRouter)
 
-app.post("/login", postLogin)
+app.use(loginRouter)
 
-app.post("/registros", adicionarRegistro)
-app.get("/registros", obterRegistros)
+app.use(registrosRouter)
 
-app.listen(process.env.PORTA, () => {
-    console.log(chalk.bold.green(`Aplicação rodando na porta ${process.env.PORTA}`))
+app.listen(process.env.PORTA || 5000, () => {
+    console.log(chalk.bold.green(`Aplicação rodando na porta ${process.env.PORTA || 5000}`))
 })
