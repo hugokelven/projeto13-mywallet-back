@@ -26,6 +26,7 @@ export default async function postLogin(req, res) {
 
         if (usuario && bcrypt.compareSync(senha, usuario.senha)) {
             const token = uuid()
+            const {nome} = usuario
             console.log(token)
         
             await db.collection("sessoes").insertOne({
@@ -33,7 +34,7 @@ export default async function postLogin(req, res) {
                 token
             })
 
-            res.send(token)
+            res.send({nome, token})
         } else {
             // FIXME: Talvez precise de um throw error
             res.sendStatus(401)

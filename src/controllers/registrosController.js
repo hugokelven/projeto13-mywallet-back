@@ -21,6 +21,7 @@ export async function adicionarRegistro(req, res) {
     }
 
     try {
+        console.log(token)
         const sessao = await db.collection("sessoes").findOne({token})
 
         const {usuarioId} = sessao
